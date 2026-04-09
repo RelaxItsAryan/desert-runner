@@ -47,7 +47,7 @@ If you want to play or develop further locally:
 Clone the repository
 
 
-git clone https://github.com/RelaxItsAryan/caravan-journey.git
+git clone https://github.com/RelaxItsAryan/desert-runner.git
 
 
 Open index.html in your browser  
