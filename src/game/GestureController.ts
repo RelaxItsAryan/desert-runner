@@ -39,6 +39,7 @@ export class GestureController {
   private baselineZ: number | null = null;
   private resumeBoostFrames = 0;
   private motionStopped = false;
+  private isProcessingFrame = false;
   private initialized = false;
   private frameCounter = 0;
   private lastFpsTime = performance.now();
@@ -70,8 +71,8 @@ export class GestureController {
     this.hands.setOptions({
       maxNumHands: 1,
       modelComplexity: 0,
-      minDetectionConfidence: 0.6,
-      minTrackingConfidence: 0.6,
+      minDetectionConfidence: 0.55,
+      minTrackingConfidence: 0.55,
     });
 
     this.hands.onResults((results: any) => this.handleResults(results));
@@ -81,8 +82,15 @@ export class GestureController {
       width: 320,
       height: 240,
       onFrame: async () => {
-        if (this.hands && this.videoEl.readyState >= 2) {
+        if (!this.hands || this.videoEl.readyState < 2 || this.isProcessingFrame) {
+          return;
+        }
+
+        this.isProcessingFrame = true;
+        try {
           await this.hands.send({ image: this.videoEl });
+        } finally {
+          this.isProcessingFrame = false;
         }
       },
     });
@@ -132,8 +140,12 @@ export class GestureController {
     const ctx = this.overlayCanvas.getContext("2d");
     if (!ctx) return;
 
-    this.overlayCanvas.width = this.videoEl.videoWidth || 320;
-    this.overlayCanvas.height = this.videoEl.videoHeight || 240;
+    const targetWidth = this.videoEl.videoWidth || 320;
+    const targetHeight = this.videoEl.videoHeight || 240;
+    if (this.overlayCanvas.width !== targetWidth || this.overlayCanvas.height !== targetHeight) {
+      this.overlayCanvas.width = targetWidth;
+      this.overlayCanvas.height = targetHeight;
+    }
     ctx.clearRect(0, 0, this.overlayCanvas.width, this.overlayCanvas.height);
 
     this.frameCounter += 1;
@@ -156,8 +168,8 @@ export class GestureController {
     }
 
     const wrist = handLandmarks[0];
-    this.smoothedX += (wrist.x - this.smoothedX) * 0.2;
-    this.smoothedZ += (wrist.z - this.smoothedZ) * 0.2;
+    this.smoothedX += (wrist.x - this.smoothedX) * 0.34;
+    this.smoothedZ += (wrist.z - this.smoothedZ) * 0.3;
 
     if (this.baselineZ === null) {
       this.baselineZ = this.smoothedZ;
@@ -174,7 +186,7 @@ export class GestureController {
       this.onStatus("Closed fist detected: STOPPED");
     } else if (openPalm && this.motionStopped) {
       this.motionStopped = false;
-      this.resumeBoostFrames = 20;
+      this.resumeBoostFrames = 12;
       this.onStatus("Open palm detected: MOVING");
     }
 

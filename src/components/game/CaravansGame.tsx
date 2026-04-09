@@ -32,6 +32,7 @@ const INITIAL_STATE: GameState = {
 };
 
 const WEATHER_CYCLE: WeatherType[] = ['clear', 'clear', 'dusty', 'clear', 'windy', 'clear', 'sandstorm', 'clear'];
+type ControlMode = "gesture" | "keyboard";
 
 export const CaravansGame = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -68,6 +69,7 @@ export const CaravansGame = () => {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showGo, setShowGo] = useState(false);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('medium');
+  const [controlMode, setControlMode] = useState<ControlMode>("gesture");
   const [score, setScore] = useState(0);
   const [gestureStatus, setGestureStatus] = useState("Allow webcam access to enable hand controls.");
   const [handDetected, setHandDetected] = useState(false);
@@ -173,9 +175,10 @@ export const CaravansGame = () => {
     }));
   }, []);
 
-  const handleStart = useCallback((selectedDifficulty: DifficultyLevel) => {
+  const handleStart = useCallback((selectedDifficulty: DifficultyLevel, selectedControlMode: ControlMode) => {
     const config = DIFFICULTY_CONFIGS[selectedDifficulty];
     setDifficulty(selectedDifficulty);
+    setControlMode(selectedControlMode);
     difficultyConfigRef.current = config;
     
     // Set initial state based on difficulty
@@ -218,6 +221,7 @@ export const CaravansGame = () => {
     setIsGameOver(false);
     setHasStarted(false);
     setDifficulty('medium');
+    setControlMode("gesture");
     setScore(0);
     scoreRef.current = 0;
     scoreUiTickRef.current = 0;
@@ -238,30 +242,6 @@ export const CaravansGame = () => {
     engineRef.current = new GameEngine(containerRef.current);
     inputRef.current = new InputHandler(true);
     audioRef.current = new AudioManager();
-
-    if (webcamVideoRef.current && webcamOverlayRef.current) {
-      gestureRef.current = new GestureController(
-        webcamVideoRef.current,
-        webcamOverlayRef.current,
-        (frame) => {
-          inputRef.current?.setGestureState({
-            steering: frame.steering,
-            throttle: frame.throttle,
-            brake: frame.brake,
-            handDetected: frame.handDetected,
-            motionStopped: frame.motionStopped,
-          });
-          setHandDetected(frame.handDetected);
-          setMovementStatus(frame.motionStopped ? "Stopped" : "Moving");
-        },
-        (statusMessage) => setGestureStatus(statusMessage),
-        (fps) => setGestureFps(fps),
-      );
-
-      gestureRef.current.initialize().catch((error) => {
-        setGestureStatus(`Camera error: ${error instanceof Error ? error.message : "unable to start hand tracking"}`);
-      });
-    }
 
     engineRef.current.onCrossroadReached = handleCrossroadReached;
     
@@ -338,9 +318,9 @@ export const CaravansGame = () => {
       const input = inputRef.current!.getState();
       const smooth = smoothedInputRef.current;
 
-      const steeringAlpha = 1 - Math.exp(-clampedDelta * 12);
-      const throttleAlpha = 1 - Math.exp(-clampedDelta * 10);
-      const brakeAlpha = 1 - Math.exp(-clampedDelta * 14);
+      const steeringAlpha = 1 - Math.exp(-clampedDelta * 20);
+      const throttleAlpha = 1 - Math.exp(-clampedDelta * 16);
+      const brakeAlpha = 1 - Math.exp(-clampedDelta * 22);
 
       smooth.motionStopped = input.motionStopped;
       if (input.handDetected) {
@@ -349,12 +329,12 @@ export const CaravansGame = () => {
         smooth.steering += (input.steering - smooth.steering) * steeringAlpha;
         smooth.throttle += (input.throttle - smooth.throttle) * throttleAlpha;
         smooth.brake += (input.brake - smooth.brake) * brakeAlpha;
-      } else if (smooth.handDetected && smooth.handGraceTimer < 0.2) {
+      } else if (smooth.handDetected && smooth.handGraceTimer < 0.12) {
         // Keep controls briefly when tracking flickers to avoid jerky speed/steering.
         smooth.handGraceTimer += clampedDelta;
-        smooth.steering *= 0.95;
-        smooth.throttle *= 0.97;
-        smooth.brake *= 0.9;
+        smooth.steering *= 0.9;
+        smooth.throttle *= 0.94;
+        smooth.brake *= 0.85;
       } else {
         smooth.handDetected = false;
         smooth.handGraceTimer = 0;
@@ -376,6 +356,13 @@ export const CaravansGame = () => {
           baseSpeed = Math.max(currentGameState.maxSpeed * 0.22, baseSpeed);
         }
         baseSpeed = Math.max(0, baseSpeed - clampedDelta * 0.25);
+
+        if (smooth.handDetected && smooth.brake < 0.08) {
+          const gestureCruiseMin = currentGameState.maxSpeed * 0.7;
+          const gestureCruiseMax = currentGameState.maxSpeed * 0.85;
+          baseSpeed = Math.max(gestureCruiseMin, baseSpeed + clampedDelta * 2.2);
+          baseSpeed = Math.min(gestureCruiseMax, baseSpeed);
+        }
       }
 
       // Apply weather effects to effective speed (don't save this to state!)
@@ -479,6 +466,56 @@ export const CaravansGame = () => {
     };
   }, [handleCrossroadReached]);
 
+  useEffect(() => {
+    if (!hasStarted || controlMode !== "gesture") {
+      gestureRef.current?.dispose();
+      gestureRef.current = null;
+      inputRef.current?.setGestureState({
+        steering: 0,
+        throttle: 0,
+        brake: 0,
+        handDetected: false,
+        motionStopped: false,
+      });
+      setHandDetected(false);
+      setGestureFps(0);
+      setGestureStatus(controlMode === "keyboard" ? "Keyboard mode active" : "Allow webcam access to enable hand controls.");
+      setMovementStatus("Moving");
+      return;
+    }
+
+    if (!webcamVideoRef.current || !webcamOverlayRef.current || gestureRef.current) {
+      return;
+    }
+
+    gestureRef.current = new GestureController(
+      webcamVideoRef.current,
+      webcamOverlayRef.current,
+      (frame) => {
+        inputRef.current?.setGestureState({
+          steering: frame.steering,
+          throttle: frame.throttle,
+          brake: frame.brake,
+          handDetected: frame.handDetected,
+          motionStopped: frame.motionStopped,
+        });
+        setHandDetected(frame.handDetected);
+        setMovementStatus(frame.motionStopped ? "Stopped" : "Moving");
+      },
+      (statusMessage) => setGestureStatus(statusMessage),
+      (fps) => setGestureFps(fps),
+    );
+
+    gestureRef.current.initialize().catch((error) => {
+      setGestureStatus(`Camera error: ${error instanceof Error ? error.message : "unable to start hand tracking"}`);
+    });
+
+    return () => {
+      gestureRef.current?.dispose();
+      gestureRef.current = null;
+    };
+  }, [hasStarted, controlMode]);
+
   return (
     <div className="relative w-full h-screen overflow-hidden bg-background">
       {/* Three.js Canvas Container */}
@@ -552,27 +589,29 @@ export const CaravansGame = () => {
       )}
 
       {/* Controls Guide */}
-      {hasStarted && !gameState.isEncounterActive && !gameState.isTrading && !isGameOver && <ControlsGuide />}
+      {hasStarted && !gameState.isEncounterActive && !gameState.isTrading && !isGameOver && <ControlsGuide controlMode={controlMode} />}
 
-      <div className="absolute right-5 bottom-5 z-20 w-64 rounded-xl border border-border bg-card/85 backdrop-blur-sm shadow-xl p-3">
-        <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-          <span>Webcam Hand Tracking</span>
-          <span>{gestureFps > 0 ? `${gestureFps} FPS` : "..."}</span>
-        </div>
-        <div className="relative w-full aspect-[4/3] bg-black/70 rounded-md overflow-hidden">
-          <video ref={webcamVideoRef} className="absolute inset-0 w-full h-full object-cover scale-x-[-1]" muted playsInline />
-          <canvas ref={webcamOverlayRef} className="absolute inset-0 w-full h-full scale-x-[-1]" />
-        </div>
-        <div className="mt-2 text-xs">
-          <div className={handDetected ? "text-green-400" : "text-yellow-400"}>
-            {handDetected ? "Hand detected" : "No hand detected"}
+      {controlMode === "gesture" && (
+        <div className="absolute right-5 bottom-5 z-20 w-64 rounded-xl border border-border bg-card/85 backdrop-blur-sm shadow-xl p-3">
+          <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+            <span>Webcam Hand Tracking</span>
+            <span>{gestureFps > 0 ? `${gestureFps} FPS` : "..."}</span>
           </div>
-          <div className={movementStatus === "Moving" ? "text-green-400" : "text-red-400"}>
-            {movementStatus}
+          <div className="relative w-full aspect-[4/3] bg-black/70 rounded-md overflow-hidden">
+            <video ref={webcamVideoRef} className="absolute inset-0 w-full h-full object-cover scale-x-[-1]" muted playsInline />
+            <canvas ref={webcamOverlayRef} className="absolute inset-0 w-full h-full scale-x-[-1]" />
           </div>
-          <div className="text-muted-foreground truncate">{gestureStatus}</div>
+          <div className="mt-2 text-xs">
+            <div className={handDetected ? "text-green-400" : "text-yellow-400"}>
+              {handDetected ? "Hand detected" : "No hand detected"}
+            </div>
+            <div className={movementStatus === "Moving" ? "text-green-400" : "text-red-400"}>
+              {movementStatus}
+            </div>
+            <div className="text-muted-foreground truncate">{gestureStatus}</div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Encounter Overlay */}
       {gameState.isEncounterActive && gameState.currentEncounter && (

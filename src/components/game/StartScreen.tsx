@@ -1,17 +1,18 @@
 import { Button } from "@/components/ui/button";
-import { Compass, Play, Trophy } from "lucide-react";
+import { Compass, Hand, Keyboard, Play, Trophy } from "lucide-react";
 import { useState, useEffect } from "react";
 import { SaveManager } from "@/game/SaveManager";
 import { SaveData, DifficultyLevel, DIFFICULTY_CONFIGS } from "@/game/types";
 
 interface StartScreenProps {
-  onStart: (difficulty: DifficultyLevel) => void;
+  onStart: (difficulty: DifficultyLevel, controlMode: "gesture" | "keyboard") => void;
 }
 
 export const StartScreen = ({ onStart }: StartScreenProps) => {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [leaderboard, setLeaderboard] = useState<SaveData[]>([]);
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel>('medium');
+  const [selectedControlMode, setSelectedControlMode] = useState<"gesture" | "keyboard">("gesture");
 
   useEffect(() => {
     setLeaderboard(SaveManager.getLeaderboard());
@@ -31,6 +32,40 @@ export const StartScreen = ({ onStart }: StartScreenProps) => {
             Desert Runner
           </h1>
           <div className="w-20 h-1 bg-gradient-to-r from-transparent via-primary to-transparent mx-auto"></div>
+        </div>
+
+        <div className="card-elevated border border-primary/30 rounded-xl p-6 mb-6 animate-slide-up" style={{ animationDelay: '0.15s' }}>
+          <h3 className="font-display text-lg text-primary mb-4">Choose Controls</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setSelectedControlMode("gesture")}
+              className={`p-4 rounded-lg border-2 transition-all duration-300 hover-lift cursor-pointer ${
+                selectedControlMode === "gesture"
+                  ? 'border-primary bg-gradient-to-br from-primary/30 to-primary/10 shadow-lg shadow-primary/40 glow-box'
+                  : 'border-border bg-secondary/30 hover:bg-secondary/50 hover:border-primary/50'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2 font-display text-base font-bold mb-1">
+                <Hand className="w-4 h-4" />
+                Gesture Camera
+              </div>
+              <div className="text-xs text-muted-foreground">Use webcam hand tracking</div>
+            </button>
+            <button
+              onClick={() => setSelectedControlMode("keyboard")}
+              className={`p-4 rounded-lg border-2 transition-all duration-300 hover-lift cursor-pointer ${
+                selectedControlMode === "keyboard"
+                  ? 'border-primary bg-gradient-to-br from-primary/30 to-primary/10 shadow-lg shadow-primary/40 glow-box'
+                  : 'border-border bg-secondary/30 hover:bg-secondary/50 hover:border-primary/50'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2 font-display text-base font-bold mb-1">
+                <Keyboard className="w-4 h-4" />
+                Keyboard
+              </div>
+              <div className="text-xs text-muted-foreground">Use W/A/S/D or arrow keys</div>
+            </button>
+          </div>
         </div>
 
         <p className="text-lg text-muted-foreground mb-8 leading-relaxed max-w-lg mx-auto">
@@ -98,7 +133,7 @@ export const StartScreen = ({ onStart }: StartScreenProps) => {
         {/* Action Buttons */}
         <div className="flex flex-col gap-3 items-center mb-6 animate-slide-up" style={{ animationDelay: '0.3s' }}>
           <Button
-            onClick={() => onStart(selectedDifficulty)}
+            onClick={() => onStart(selectedDifficulty, selectedControlMode)}
             className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground font-display text-lg px-12 py-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover-lift btn-glow relative"
           >
             <Play className="w-5 h-5 mr-3" />
