@@ -61,7 +61,7 @@ or similar.
 
 # 👥 Team Credits
 
-This game was created by me and @SimplyDilisha during a game jam. We collaborated on all aspects of design, development, and deployment of this project.
+This game was created by @relaxitsaryan, @simplysdilisha, @ilesh18, @prastut08 during a game jam. We collaborated on all aspects of design, development, and deployment of this project.
 
 # ⭐ Why This Matters
 
