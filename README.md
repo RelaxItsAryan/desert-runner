@@ -1,78 +1,166 @@
-# 🌵 Desert Runner — Crossroads of Sand
+# Desert Runner
 
-# Play it here: https://desert-runner-still-loading.netlify.app/
+Fast-paced 3D endless runner set in a harsh desert world. Drive as far as you can, dodge obstacles, collect resources, survive weather shifts, and make high-stakes choices at crossroads.
 
-Desert Runner is a web-based endless runner game built by our team for a game jam event. Unlike many game jam entries that use engines like Unity or Godot, this game was made from scratch using only web technologies — HTML, CSS, and JavaScript — with no game engines or external frameworks. 
-itch.io
+Live demo: https://desert-runner-still-loading.netlify.app/
 
-# 🎮 About the Game
+## Overview
 
-Desert Runner is an endless runner game where players navigate a character through a desert environment, avoiding obstacles and trying to achieve the highest score possible. The game runs directly in a web browser, making it easy to play on desktops and mobile devices without installation. 
-Wikipedia
+Desert Runner is a browser game built with React, TypeScript, and Three.js.
 
-# 🛠️ Built With
+Core gameplay pillars:
+- Endless driving with increasing pressure
+- Resource management (fuel, health, money)
+- Dynamic weather and day-night cycle
+- Encounter and trading systems at crossroads
+- Multiple difficulty presets with score multipliers
+- Two control modes: keyboard and webcam hand gestures
 
-This project was developed using core web development technologies, including:
+## Features
 
-HTML5 — Game structure and rendering
+- 3D environment rendered with Three.js and WebGL
+- Procedural obstacle and pickup flow
+- Encounter events with branching outcomes
+- Trading posts with purchasable upgrades and recovery items
+- Difficulty modes: Easy, Medium, Hard, Insane
+- In-run HUD with speed, status, score, weather, and time-of-day
+- Local leaderboard persisted in browser storage
 
-CSS3 — Styling and responsive layout
+## Controls
 
-JavaScript (Vanilla) — Game logic, input handling, and animation
+### Keyboard mode
+- W or Up Arrow: accelerate
+- S or Down Arrow: brake
+- A or Left Arrow: steer left
+- D or Right Arrow: steer right
 
-Three.js- for 3d rendering
+### Gesture mode (webcam)
+- Move hand left or right: steer
+- Push hand forward: accelerate
+- Pull hand backward: brake
+- Closed fist: stop immediately
+- Open palm: resume movement
 
-WebGL- animations, texture and design
+Note: Gesture controls require webcam permission and internet access to load MediaPipe scripts from CDN.
 
-Typescript
+## Difficulty presets
 
-Tailwind CSS
+| Difficulty | Start Fuel | Start Health | Start Money | Score Multiplier |
+|---|---:|---:|---:|---:|
+| Easy | 100 | 100 | 100 | 0.5x |
+| Medium | 100 | 100 | 50 | 1.0x |
+| Hard | 90 | 100 | 30 | 1.5x |
+| Insane | 80 | 80 | 10 | 2.5x |
 
-No game engines or libraries were used — everything was coded manually to maximize learning and flexibility.
+## Tech stack
 
-# 🚀 Gameplay Instructions
+- React 18 + TypeScript
+- Vite 5
+- Three.js
+- Tailwind CSS + Radix UI components
+- React Router
 
-Use the arrow keys (or WASD) to control the player.
+## Getting started
 
-Avoid obstacles and try to survive as long as possible.
+### 1) Install dependencies
 
-Collect any bonuses you encounter to improve your score.
+Using npm:
 
-(Adjust this section based on the actual controls you implemented.)
+```bash
+npm install
+```
 
-# 📦 How to Run Locally
+Using Bun:
 
-If you want to play or develop further locally:
+```bash
+bun install
+```
 
-Clone the repository
+### 2) Start development server
 
-git clone https://github.com/RelaxItsAryan/caravan-journey.git
+```bash
+npm run dev
+```
 
+Open the local URL shown in your terminal (typically http://localhost:5173).
 
-Open index.html in your browser
-(No server needed — the game runs locally using standard browser APIs.)
+### 3) Build for production
 
-(Optional) If you use modules or advanced JS features, you can launch a local server:
+```bash
+npm run build
+```
 
-npx serve
+### 4) Preview production build
 
+```bash
+npm run preview
+```
 
-or similar.
+## Available scripts
 
-# 👥 Team Credits
+- npm run dev: start Vite dev server
+- npm run build: create production build
+- npm run build:dev: build in development mode
+- npm run preview: preview production build locally
+- npm run lint: run ESLint
 
-This game was created by me and @SimplyDilisha during a game jam. We collaborated on all aspects of design, development, and deployment of this project.
+## Project structure
 
-# ⭐ Why This Matters
+```text
+src/
+	components/
+		game/
+			CaravansGame.tsx      # Main game container and game loop integration
+			StartScreen.tsx       # Difficulty/control selection and leaderboard UI
+			GameHUD.tsx           # In-game status panels
+			EncounterOverlay.tsx  # Encounter and trading interactions
+	game/
+		GameEngine.ts           # Three.js world, spawning, collisions, weather/day-night
+		InputHandler.ts         # Keyboard input state
+		GestureController.ts    # Webcam + MediaPipe gesture input
+		SaveManager.ts          # Local leaderboard persistence
+		types.ts                # Shared game types and difficulty configs
+```
 
-Making a playable game using just HTML, CSS, JavaScript and Web Dev (without engines) is a great way to deepen your understanding of:
+## Gameplay loop
 
-Browser rendering and the game loop
+1. Pick difficulty and control mode.
+2. Survive while fuel drains and hazards increase.
+3. Collect pickups (fuel, health, money, valuables).
+4. Resolve random encounters and trade when available.
+5. Keep pushing distance to set a high score.
 
-Keyboard input handling
+## Persistence
 
-Collision logic
+Leaderboard entries are stored in localStorage under:
+- caravans_leaderboard
 
-Responsive design
+Only top 10 entries are retained.
 
-Browser games like this run right in the web browser, which means anyone can play without downloads or installs — a classic benefit of HTML5 browser games.
+## Deployment
+
+The project is compatible with static hosting platforms:
+- Netlify
+- Vercel
+- GitHub Pages (with Vite base path config if needed)
+
+Build output is generated in the dist folder.
+
+## Troubleshooting
+
+- Webcam/gesture not working:
+	- Ensure camera permissions are allowed in the browser.
+	- Use HTTPS or localhost (required by getUserMedia in most browsers).
+	- Check network access to jsdelivr CDN for MediaPipe scripts.
+- Performance issues:
+	- Close heavy browser tabs.
+	- Disable battery saver mode.
+	- Lower browser zoom and avoid high-DPI scaling if FPS drops.
+
+## Credits
+
+Created by Aryan and SimplyDilisha during a game jam.
+
+## License
+
+This repository includes a License file. See LICENSE for terms.
