@@ -1,6 +1,6 @@
 # 🌵 Desert Runner — Crossroads of Sand
 
-# Play it here: https://desert-runner-still-loading.netlify.app/
+# Play it here: https://Speedbreakers.netlify.app/
 
 Desert Runner is a web-based endless runner game built by our team for a game jam event. Unlike many game jam entries that use engines like Unity or Godot, this game was made from scratch using only web technologies — HTML, CSS, and JavaScript — with no game engines or external frameworks.
 
